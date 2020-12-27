@@ -1,0 +1,49 @@
+pipeline {
+  environment {
+    registry = "nixonlauture/docker-files"
+    registryCredential = 'dockerhub'
+    dockerImage = ''
+  }
+  agent any
+  stages {
+    stage('Cloning Git') {
+      steps {
+        git 'https://github.com/Nixon120/devops.git'
+      }
+    }
+    stage('Building image') {
+      steps{
+        script {
+         dockerImage = docker.build registry + ":$BUILD_NUMBER"
+       }
+      //  sh "docker ps"
+      }
+    }
+
+    stage('Test Mkdocs' ) {
+                agent {
+                docker { image 'nixonlauture/docker-files:$BUILD_NUMBER' }
+            }
+            steps {
+                sh 'nginx -v' 
+ 
+            }
+        }
+
+
+    stage('Deploy Image') {
+      steps{
+        script {
+          docker.withRegistry( '', 'dockerHub') {
+            dockerImage.push()
+          }
+        }
+      }
+    }
+    stage('Remove Unused docker image') {
+      steps{
+        sh "docker rmi $registry:$BUILD_NUMBER"
+      }
+    }
+  }
+}
